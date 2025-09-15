@@ -1,6 +1,6 @@
 export default {
-  checkIntervalMs: 60 * 1000, // 1 minute
-  speedTestEveryNCycles: 5, // 5 cycles = 5 minutes
+  checkIntervalMs: 2 * 60 * 1000, // 2 minutes (optimized for team monitoring)
+  speedTestEveryNCycles: 5, // 5 cycles = 10 minutes (reduced frequency)
 
   //thresholds (fallbacks;env overrides)
   thresholds: {
