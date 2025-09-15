@@ -1,7 +1,13 @@
 import { exec } from "child_process";
 import os from "os";
 
-const CANDIDATES = ["ultraviewer.exe", "UltraViewer.exe", "wine"];
+const CANDIDATES = [
+  "ultraviewer.exe",
+  "UltraViewer.exe",
+  "UltraViewer_Service.exe",
+  "UltraViewer_Desktop.exe",
+  "wine",
+];
 
 export function checkUltraViewer() {
   const platform = os.platform();
@@ -17,14 +23,18 @@ export function checkUltraViewer() {
 
       const text = stdout.toLowerCase();
 
-      // Quick pass - only look for exact process names
+      // Quick pass - look for exact process names
       const foundName = CANDIDATES.some((n) => text.includes(n.toLowerCase()));
       if (foundName) {
         return resolve(true);
       }
 
-      // Heuristic: UltraViewer often listens on UV ports / has "ultraviewer" in args
-      // Already covered above; fallback false:
+      // Additional check: look for "ultraviewer" anywhere in process list (case insensitive)
+      if (text.includes("ultraviewer")) {
+        return resolve(true);
+      }
+
+      // Fallback: no UltraViewer found
       resolve(false);
     });
   });

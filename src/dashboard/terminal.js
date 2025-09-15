@@ -19,12 +19,21 @@ const table = blessed.table({
   label: " Workstation Monitor ",
   border: { type: "line", fg: "cyan" },
   columnSpacing: 2,
-  columnWidth: [15, 8, 12, 8, 10, 12, 20], // adjust widths
+  columnWidth: [15, 8, 12, 8, 10, 12, 15, 20], // adjust widths
 });
 
 // Initial empty data
 let rows = [];
-const headers = ["Host", "OS", "UV", "Online", "Ping", "Download", "Updated"];
+const headers = [
+  "Host",
+  "OS",
+  "UV",
+  "Online",
+  "Ping",
+  "Download",
+  "Speed Test",
+  "Updated",
+];
 
 // Render data into table
 function renderTable() {
@@ -53,6 +62,7 @@ async function fetchAll() {
     w.is_online ? "ON" : "OFF",
     w.ping_ms ? `${w.ping_ms}ms` : "-",
     w.download_mbps ? `${w.download_mbps}Mbps` : "-",
+    w.speed_test_at ? new Date(w.speed_test_at).toLocaleTimeString() : "-",
     w.updated_at ? new Date(w.updated_at).toLocaleTimeString() : "-",
   ]);
 
@@ -76,6 +86,7 @@ supabase
         w.is_online ? "ON" : "OFF",
         w.ping_ms ? `${w.ping_ms}ms` : "-",
         w.download_mbps ? `${w.download_mbps}Mbps` : "-",
+        w.speed_test_at ? new Date(w.speed_test_at).toLocaleTimeString() : "-",
         w.updated_at ? new Date(w.updated_at).toLocaleTimeString() : "-",
       ];
       if (idx >= 0) rows[idx] = row;
