@@ -1,66 +1,59 @@
-import blessed from 'blessed';
-import contrib from 'blessed-contrib';
-import { supabase } from '../db/supabase.js';
+import blessed from "blessed";
+import { supabase } from "../db/supabase.js";
 
 // Setup screen
 const screen = blessed.screen();
-const grid = new contrib.grid({ rows: 12, cols: 12, screen });
 
-// Table widget
-const table = grid.set(0, 0, 12, 12, contrib.table, {
+// Table widget - using blessed table directly (no vulnerabilities)
+const table = blessed.table({
+  parent: screen,
+  top: 0,
+  left: 0,
+  width: "100%",
+  height: "100%",
   keys: true,
-  fg: 'white',
-  selectedFg: 'white',
-  selectedBg: 'blue',
+  fg: "white",
+  selectedFg: "white",
+  selectedBg: "blue",
   interactive: true,
-  label: ' Workstation Monitor ',
-  width: '100%',
-  height: '100%',
-  border: { type: 'line', fg: 'cyan' },
+  label: " Workstation Monitor ",
+  border: { type: "line", fg: "cyan" },
   columnSpacing: 2,
-  columnWidth: [20, 12, 12, 10, 12, 12, 25] // adjust widths
+  columnWidth: [15, 8, 12, 8, 10, 12, 20], // adjust widths
 });
 
 // Initial empty data
 let rows = [];
+const headers = ["Host", "OS", "UV", "Online", "Ping", "Download", "Updated"];
 
 // Render data into table
 function renderTable() {
-  table.setData({
-    headers: [
-      'Host',
-      'OS',
-      'UltraViewer',
-      'Online',
-      'Ping (ms)',
-      'Down (Mbps)',
-      'Updated At'
-    ],
-    data: rows
-  });
+  // Use blessed table API directly (no vulnerabilities)
+  const tableData = [headers, ...rows];
+  table.setData(tableData);
   screen.render();
 }
 
 // Fetch latest snapshot
 async function fetchAll() {
   const { data, error } = await supabase
-    .from('workstations')
-    .select('*')
-    .order('updated_at', { ascending: false });
+    .from("workstations")
+    .select("*")
+    .order("updated_at", { ascending: false });
 
   if (error) {
-    console.error('Fetch error:', error.message);
+    console.error("Fetch error:", error.message);
     return;
   }
 
-  rows = data.map(w => [
-    w.host_name,
-    w.os,
-    w.is_ultraviewer_on ? '✅' : '❌',
-    w.is_online ? '🟢' : '🔴',
-    w.ping_ms ?? '-',
-    w.download_mbps ?? '-',
-    new Date(w.updated_at).toLocaleTimeString()
+  rows = data.map((w) => [
+    w.hostname || w.host_name || "Unknown",
+    w.os || "Unknown",
+    w.is_ultraviewer_on ? "ON" : "OFF",
+    w.is_online ? "ON" : "OFF",
+    w.ping_ms ? `${w.ping_ms}ms` : "-",
+    w.download_mbps ? `${w.download_mbps}Mbps` : "-",
+    w.updated_at ? new Date(w.updated_at).toLocaleTimeString() : "-",
   ]);
 
   renderTable();
@@ -68,22 +61,22 @@ async function fetchAll() {
 
 // Live subscription
 supabase
-  .channel('workstations-changes')
+  .channel("workstations-changes")
   .on(
-    'postgres_changes',
-    { event: '*', schema: 'public', table: 'workstations' },
-    payload => {
+    "postgres_changes",
+    { event: "*", schema: "public", table: "workstations" },
+    (payload) => {
       const w = payload.new;
       // Update or add row
-      const idx = rows.findIndex(r => r[0] === w.host_name);
+      const idx = rows.findIndex((r) => r[0] === (w.hostname || w.host_name));
       const row = [
-        w.hostname,
-        w.os,
-        w.is_ultraviewer_on ? '✅' : '❌',
-        w.is_online ? '🟢' : '🔴',
-        w.ping_ms ?? '-',
-        w.download_mbps ?? '-',
-        new Date(w.updated_at).toLocaleTimeString()
+        w.hostname || w.host_name || "Unknown",
+        w.os || "Unknown",
+        w.is_ultraviewer_on ? "ON" : "OFF",
+        w.is_online ? "ON" : "OFF",
+        w.ping_ms ? `${w.ping_ms}ms` : "-",
+        w.download_mbps ? `${w.download_mbps}Mbps` : "-",
+        w.updated_at ? new Date(w.updated_at).toLocaleTimeString() : "-",
       ];
       if (idx >= 0) rows[idx] = row;
       else rows.push(row);
@@ -94,7 +87,7 @@ supabase
   .subscribe();
 
 // Quit on ESC, q, or Ctrl+C
-screen.key(['escape', 'q', 'C-c'], () => process.exit(0));
+screen.key(["escape", "q", "C-c"], () => process.exit(0));
 
 // Run
 (async function () {
