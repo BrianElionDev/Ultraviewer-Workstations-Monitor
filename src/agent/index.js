@@ -9,6 +9,9 @@ import { getHostInfo, logInfo, logError } from "./utils.js";
 const { desktopName, os } = getHostInfo();
 
 let cycle = 0;
+// Store last known speed test values to persist between cycles
+let lastSpeedTest = { download: null, upload: null, ping: null };
+let lastSpeedTestTime = null;
 
 async function oneCycle() {
   cycle++;
@@ -20,11 +23,22 @@ async function oneCycle() {
   ]);
 
   // 2) Speed test occasionally (heavier)
-  let spd = { download: null, upload: null, ping: null };
+  let spd = { ...lastSpeedTest }; // Start with last known values
   if (cycle === 1 || cycle % settings.speedTestEveryNCycles === 0) {
     console.log(`Running speed test on cycle ${cycle}...`);
-    spd = await checkSpeed();
-    console.log(`Speed test completed:`, spd);
+    const newSpeedTest = await checkSpeed();
+    console.log(`Speed test completed:`, newSpeedTest);
+
+    // Update last known values only if we got new data
+    if (
+      newSpeedTest.download !== null ||
+      newSpeedTest.upload !== null ||
+      newSpeedTest.ping !== null
+    ) {
+      lastSpeedTest = { ...newSpeedTest };
+      lastSpeedTestTime = new Date().toISOString();
+      spd = { ...newSpeedTest };
+    }
   }
 
   // Prefer ping from speed test if available, fallback to network ping
@@ -40,6 +54,7 @@ async function oneCycle() {
     ping_ms: pingMs ?? null,
     download_mbps: spd.download ?? null,
     upload_mbps: spd.upload ?? null,
+    speed_test_at: lastSpeedTestTime,
   };
 
   // 🔑 Upsert instead of insert
@@ -59,6 +74,9 @@ async function oneCycle() {
           ping_ms: pingMs ?? null,
           download_mbps: spd.download ?? null,
           upload_mbps: spd.upload ?? null,
+          speed_test_at: lastSpeedTestTime
+            ? new Date(lastSpeedTestTime).toLocaleTimeString()
+            : null,
         })
     );
   }
