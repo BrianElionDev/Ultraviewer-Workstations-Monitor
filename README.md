@@ -44,8 +44,14 @@ git clone https://github.com/YOUR_USERNAME/workstation-monitor-agent.git
 cd workstation-monitor-agent
 2. Install dependencies
 bash
+
 Copy code
 npm install
+
+Copy code below in puppeteer issues
+$env:PUPPETEER_SKIP_DOWNLOAD="true"
+npm install
+
 3. Configure environment
 Create a .env file:
 
@@ -56,11 +62,11 @@ SUPABASE_KEY=your-anon-or-service-role-key
 4. Run the agent
 bash
 Copy code
-node src/agent.js
+npm start
 5. Run the dashboard
 bash
 Copy code
-node src/terminal.js
+npm dashboard
 🗄️ Supabase Table Schema
 sql
 Copy code
@@ -72,7 +78,8 @@ create table if not exists workstations (
   is_online boolean not null,
   ping_ms numeric,
   download_mbps numeric,
-  upload_mbps numeric
+  upload_mbps numeric,
+  speed_test_at 
 );
 Enable realtime:
 
