@@ -10,13 +10,15 @@ export async function checkSpeed() {
 
     // Try fast-cli first with longer timeout
     try {
+      console.log("Trying fast-cli...");
       const { stdout, stderr } = await execAsync("npx fast --json", {
         timeout: 60000, // 60 second timeout
         maxBuffer: 1024 * 1024,
       });
 
+      console.log(`fast-cli stdout: ${stdout}`);
       if (stderr && stderr.trim()) {
-        console.log(`Speed test stderr: ${stderr.trim()}`);
+        console.log(`fast-cli stderr: ${stderr.trim()}`);
       }
 
       const cleanOutput = stdout.trim();
@@ -25,6 +27,7 @@ export async function checkSpeed() {
 
       if (jsonStart !== -1 && jsonEnd > 0) {
         const jsonString = cleanOutput.substring(jsonStart, jsonEnd);
+        console.log(`Parsing JSON: ${jsonString}`);
         const result = JSON.parse(jsonString);
 
         const downloadMbps = result.downloadSpeed || null;
@@ -40,9 +43,12 @@ export async function checkSpeed() {
           upload: uploadMbps,
           ping: pingMs,
         };
+      } else {
+        console.log("No valid JSON found in fast-cli output");
       }
     } catch (fastError) {
       console.log(`fast-cli failed: ${fastError.message}`);
+      console.log(`fast-cli error details: ${fastError.stack}`);
     }
 
     // Fallback: Try multiple ping methods
