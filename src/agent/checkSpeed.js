@@ -8,12 +8,41 @@ export async function checkSpeed() {
   try {
     console.log("Starting speed test...");
 
-    // Try fast-cli first with longer timeout
+    // Try fast-cli first with longer timeout and Chrome detection
     try {
       console.log("Trying fast-cli...");
-      const { stdout, stderr } = await execAsync("npx fast --json", {
+      
+      // Try to find Chrome executable
+      let chromePath = process.env.CHROME_BIN;
+      if (!chromePath) {
+        const possiblePaths = [
+          "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+          "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+          "C:\\Users\\" + process.env.USERNAME + "\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe"
+        ];
+        
+        // Try to find Chrome in common locations
+        for (const path of possiblePaths) {
+          try {
+            await execAsync(`if exist "${path}" echo found`, { timeout: 1000 });
+            chromePath = path;
+            console.log(`Found Chrome at: ${path}`);
+            break;
+          } catch (e) {
+            // Path doesn't exist, try next
+          }
+        }
+      }
+
+      const { stdout, stderr } = await execAsync("npx fast --json --browser chrome", {
         timeout: 60000, // 60 second timeout
         maxBuffer: 1024 * 1024,
+        env: {
+          ...process.env,
+          CHROME_BIN: chromePath,
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "true",
+          PUPPETEER_EXECUTABLE_PATH: chromePath
+        },
       });
 
       console.log(`fast-cli stdout: ${stdout}`);
@@ -57,7 +86,7 @@ export async function checkSpeed() {
     // Method 1: Try PowerShell Test-NetConnection (Windows)
     try {
       const { stdout } = await execAsync(
-        'powershell -Command "try { $result = Test-NetConnection -ComputerName 8.8.8.8 -Port 53 -InformationLevel Quiet; if ($result) { Test-NetConnection -ComputerName 8.8.8.8 -Port 53 | Select-Object -ExpandProperty ResponseTime } else { $null } } catch { $null }"',
+        'powershell -Command "try { $result = Test-NetConnection -ComputerName 8.8.8.8 -Port 53 -InformationLevel Quiet; if ($result) { (Test-NetConnection -ComputerName 8.8.8.8 -Port 53).ResponseTime } else { $null } } catch { $null }"',
         {
           timeout: 10000,
         }
