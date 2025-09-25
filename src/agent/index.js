@@ -5,6 +5,7 @@ import { checkUltraViewer } from "./checkProcess.js";
 import { checkNetwork } from "./checkNetwork.js";
 import { checkSpeed } from "./checkSpeed.js";
 import { getHostInfo, logInfo, logError } from "./utils.js";
+import { alertManager } from "../notifications/index.js";
 
 const { desktopName, os } = getHostInfo();
 
@@ -12,6 +13,13 @@ let cycle = 0;
 // Store last known speed test values to persist between cycles
 let lastSpeedTest = { download: null, upload: null, ping: null };
 let lastSpeedTestTime = null;
+
+// Track previous state for alerting
+let previousState = {
+  ultraviewer: null,
+  network: null,
+  speed: { download: null, upload: null, ping: null },
+};
 
 async function oneCycle() {
   cycle++;
@@ -44,6 +52,9 @@ async function oneCycle() {
   // Prefer ping from speed test if available, fallback to network ping
   // spd.ping = ping from speed test, net.time = ping to 8.8.8.8
   const pingMs = spd.ping ?? net.time;
+
+  // Check for state changes and trigger alerts
+  await checkAndTriggerAlerts(uvRunning, net.alive, spd, pingMs);
 
   const payload = {
     hostname: desktopName,
@@ -78,6 +89,110 @@ async function oneCycle() {
             ? new Date(lastSpeedTestTime).toLocaleTimeString()
             : null,
         })
+    );
+  }
+
+  // Update previous state for next cycle
+  previousState = {
+    ultraviewer: uvRunning,
+    network: net.alive,
+    speed: { ...spd },
+  };
+}
+
+async function checkAndTriggerAlerts(
+  uvRunning,
+  networkAlive,
+  speedData,
+  pingMs
+) {
+  // UltraViewer status alerts
+  if (previousState.ultraviewer === null) {
+    // Initial status on startup (configurable)
+    if (settings.alerts.startupStatus) {
+      if (uvRunning) {
+        await alertManager.alertUltraViewerUp(desktopName);
+      } else {
+        await alertManager.alertUltraViewerDown(desktopName);
+      }
+    }
+  } else {
+    // State change
+    if (!previousState.ultraviewer && uvRunning) {
+      await alertManager.alertUltraViewerUp(desktopName);
+    }
+    // Periodic reminder while down (rate-limited by cooldown)
+    if (settings.alerts.reminders && !uvRunning) {
+      await alertManager.alertUltraViewerDown(desktopName);
+    }
+  }
+
+  // Network status alerts
+  if (previousState.network === null) {
+    // Initial status on startup (configurable)
+    if (settings.alerts.startupStatus) {
+      if (!networkAlive) {
+        await alertManager.alertNetworkDown(desktopName);
+      }
+      // Don't send "restored" on startup - only on actual state changes
+    }
+  } else {
+    // State change
+    if (!previousState.network && networkAlive) {
+      await alertManager.alertNetworkUp(desktopName);
+    }
+    // Periodic reminder while down (rate-limited by cooldown)
+    if (settings.alerts.reminders && !networkAlive) {
+      await alertManager.alertNetworkDown(desktopName);
+    }
+  }
+
+  // Speed threshold checks (only when we have new speed data)
+  if (
+    speedData.download !== null &&
+    speedData.download < settings.thresholds.minDownloadMbps
+  ) {
+    await alertManager.alertSpeedThreshold(
+      desktopName,
+      "download",
+      speedData.download,
+      settings.thresholds.minDownloadMbps
+    );
+  }
+
+  if (
+    settings.uploadCheckEnabled &&
+    speedData.upload !== null &&
+    speedData.upload < settings.thresholds.minUploadMbps
+  ) {
+    await alertManager.alertSpeedThreshold(
+      desktopName,
+      "upload",
+      speedData.upload,
+      settings.thresholds.minUploadMbps
+    );
+  }
+
+  // Ping threshold check
+  if (pingMs !== null && pingMs > settings.thresholds.maxPingMs) {
+    await alertManager.alertPingThreshold(
+      desktopName,
+      pingMs,
+      settings.thresholds.maxPingMs
+    );
+  }
+
+  // Sustained slow-network warning (severity-based policy)
+  if (
+    speedData.download !== null &&
+    speedData.download < settings.alerts.slowNetWarningMbps
+  ) {
+    // piggyback on speed threshold alert message/severity
+    await alertManager.triggerAlert(
+      "SUSTAINED_SLOW_NETWORK",
+      "medium",
+      { hostname: desktopName, download: speedData.download },
+      `${desktopName}: Internet speed low (${speedData.download} Mbps)`
     );
   }
 }

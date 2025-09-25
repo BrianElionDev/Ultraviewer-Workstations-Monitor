@@ -11,22 +11,24 @@ export async function checkSpeed() {
     // Try fast-cli first with longer timeout and Chrome detection
     try {
       console.log("Trying fast-cli...");
-      
+
       // Try to find Chrome executable
       let chromePath = process.env.CHROME_BIN;
       if (!chromePath) {
         const possiblePaths = [
           "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
           "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-          "C:\\Users\\" + process.env.USERNAME + "\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe"
+          "C:\\Users\\" +
+            process.env.USERNAME +
+            "\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe",
         ];
-        
+
         // Try to find Chrome in common locations
         for (const path of possiblePaths) {
           try {
             await execAsync(`if exist "${path}" echo found`, { timeout: 1000 });
             chromePath = path;
-            console.log(`Found Chrome at: ${path}`);
+            console.log(`Found Chrome`);
             break;
           } catch (e) {
             // Path doesn't exist, try next
@@ -34,16 +36,19 @@ export async function checkSpeed() {
         }
       }
 
-      const { stdout, stderr } = await execAsync("npx fast --json --browser chrome", {
-        timeout: 60000, // 60 second timeout
-        maxBuffer: 1024 * 1024,
-        env: {
-          ...process.env,
-          CHROME_BIN: chromePath,
-          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "true",
-          PUPPETEER_EXECUTABLE_PATH: chromePath
-        },
-      });
+      const { stdout, stderr } = await execAsync(
+        "npx fast --json --browser chrome",
+        {
+          timeout: 60000, // 60 second timeout
+          maxBuffer: 1024 * 1024,
+          env: {
+            ...process.env,
+            CHROME_BIN: chromePath,
+            PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "true",
+            PUPPETEER_EXECUTABLE_PATH: chromePath,
+          },
+        }
+      );
 
       console.log(`fast-cli stdout: ${stdout}`);
       if (stderr && stderr.trim()) {
@@ -56,7 +61,6 @@ export async function checkSpeed() {
 
       if (jsonStart !== -1 && jsonEnd > 0) {
         const jsonString = cleanOutput.substring(jsonStart, jsonEnd);
-        console.log(`Parsing JSON: ${jsonString}`);
         const result = JSON.parse(jsonString);
 
         const downloadMbps = result.downloadSpeed || null;
