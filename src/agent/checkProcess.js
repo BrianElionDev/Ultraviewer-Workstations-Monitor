@@ -1,13 +1,16 @@
 import { exec } from "child_process";
 import os from "os";
 
+// Only check for the actual UltraViewer application, not background services
 const CANDIDATES = [
   "ultraviewer.exe",
   "UltraViewer.exe",
-  "UltraViewer_Service.exe",
   "UltraViewer_Desktop.exe",
   "wine",
 ];
+
+// Background services to exclude
+const EXCLUDE_SERVICES = ["ultraviewer_service.exe"];
 
 export function checkUltraViewer() {
   const platform = os.platform();
@@ -23,15 +26,21 @@ export function checkUltraViewer() {
 
       const text = stdout.toLowerCase();
 
-      // Quick pass - look for exact process names
-      const foundName = CANDIDATES.some((n) => text.includes(n.toLowerCase()));
-      if (foundName) {
+      // First, check if any excluded services are running
+      const hasExcludedService = EXCLUDE_SERVICES.some((service) =>
+        text.includes(service.toLowerCase())
+      );
+
+      // Look for actual UltraViewer application (not services)
+      const foundApp = CANDIDATES.some((n) => text.includes(n.toLowerCase()));
+
+      if (foundApp) {
         return resolve(true);
       }
 
-      // Additional check: look for "ultraviewer" anywhere in process list (case insensitive)
-      if (text.includes("ultraviewer")) {
-        return resolve(true);
+      // If no app found but service is running, UltraViewer app is not active
+      if (hasExcludedService) {
+        return resolve(false);
       }
 
       // Fallback: no UltraViewer found

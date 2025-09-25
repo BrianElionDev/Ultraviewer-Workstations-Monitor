@@ -12,6 +12,32 @@ export default {
   alertsEnabled:
     String(process.env.ALERTS_ENABLED || "false").toLowerCase() === "true",
 
+  // metric checks
+  uploadCheckEnabled:
+    String(process.env.UPLOAD_CHECK_ENABLED || "false").toLowerCase() ===
+    "true",
+
+  // alerts config used by notification system
+  alerts: {
+    cooldownMs: Number(process.env.ALERT_COOLDOWN_MS) || 5 * 60 * 1000,
+    startupStatus:
+      String(process.env.ALERT_STARTUP_STATUS || "true").toLowerCase() ===
+      "true",
+    reminders:
+      String(process.env.ALERT_REMINDERS || "true").toLowerCase() === "true",
+    slowNetWarningMbps: Number(process.env.SLOW_NET_WARNING_MBPS) || 2,
+    slowNetPersistMs: Number(process.env.SLOW_NET_PERSIST_MS) || 10 * 60 * 1000,
+    channels: {
+      console:
+        String(process.env.ALERT_CONSOLE || "true").toLowerCase() === "true",
+      log: String(process.env.ALERT_LOG || "true").toLowerCase() === "true",
+      webhook:
+        String(process.env.ALERT_WEBHOOK || "false").toLowerCase() === "true",
+      email:
+        String(process.env.ALERT_EMAIL || "false").toLowerCase() === "true",
+    },
+  },
+
   //dashboard
   dashboard: {
     refreshMs: 10_000, //10 seconds
