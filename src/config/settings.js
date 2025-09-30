@@ -31,10 +31,6 @@ export default {
       console:
         String(process.env.ALERT_CONSOLE || "true").toLowerCase() === "true",
       log: String(process.env.ALERT_LOG || "true").toLowerCase() === "true",
-      webhook:
-        String(process.env.ALERT_WEBHOOK || "false").toLowerCase() === "true",
-      email:
-        String(process.env.ALERT_EMAIL || "false").toLowerCase() === "true",
     },
   },
 

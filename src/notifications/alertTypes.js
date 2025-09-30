@@ -16,8 +16,6 @@ export const ALERT_SEVERITY = {
 };
 
 export const ALERT_CHANNELS = {
-  EMAIL: "email",
-  WEBHOOK: "webhook",
   CONSOLE: "console",
   LOG: "log",
 };
