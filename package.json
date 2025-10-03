@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.2",
+    "axios": "^1.7.9",
     "blessed": "^0.1.81",
     "dotenv": "^17.2.2",
     "fast-cli": "^4.0.1",

@@ -31,6 +31,8 @@ export default {
       console:
         String(process.env.ALERT_CONSOLE || "true").toLowerCase() === "true",
       log: String(process.env.ALERT_LOG || "true").toLowerCase() === "true",
+      whatsapp:
+        String(process.env.ALERT_WHATSAPP || "false").toLowerCase() === "true",
     },
   },
 
