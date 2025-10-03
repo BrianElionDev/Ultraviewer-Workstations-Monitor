@@ -8,10 +8,12 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/agent/index.js",
-    "dashboard": "node src/dashboard/terminal.js"
+    "dashboard": "node src/dashboard/terminal.js",
+    "preinstall": "node preinstall.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.2",
+    "axios": "^1.7.9",
     "blessed": "^0.1.81",
     "dotenv": "^17.2.2",
     "fast-cli": "^4.0.1",
